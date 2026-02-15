@@ -97,7 +97,7 @@ function App() {
     <div className="h-screen bg-[#0a0a0f] p-3 flex flex-col overflow-hidden">
       <header className="text-center mb-2">
         <h1 className="text-lg font-bold text-white tracking-tight leading-none">
-          David Brand's Poker Room
+          Jacob's Poker Trainer
         </h1>
         <p className="text-[10px] text-slate-500">Poker Range & Combo Visualizer</p>
       </header>
