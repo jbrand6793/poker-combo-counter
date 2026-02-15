@@ -94,7 +94,7 @@ function App() {
   }, [heroCards, boardCards]);
 
   return (
-    <div className="h-screen bg-[#0a0a0f] p-3 flex flex-col overflow-hidden">
+    <div className="min-h-screen lg:h-screen bg-[#0a0a0f] p-3 flex flex-col lg:overflow-hidden">
       <header className="text-center mb-2">
         <h1 className="text-lg font-bold text-white tracking-tight leading-none">
           Jacob's Poker Trainer
@@ -102,7 +102,7 @@ function App() {
         <p className="text-[10px] text-slate-500">Poker Range & Combo Visualizer</p>
       </header>
 
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 flex-1 min-h-0 w-full">
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 flex-1 lg:min-h-0 w-full">
         {/* Left: Range Matrix + Slider + Card Inputs */}
         <div className="flex-shrink-0 flex flex-col gap-2">
           <RangeMatrix
@@ -114,7 +114,7 @@ function App() {
             onChange={handleSliderChange}
             comboCount={rangeComboCount}
           />
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <CardSelector
               label="Hero Hand"
               cards={heroCards}
@@ -137,7 +137,7 @@ function App() {
         </div>
 
         {/* Right: Results */}
-        <div className="min-w-0 min-h-0 w-80">
+        <div className="min-w-0 lg:min-h-0 lg:w-80 pb-4 lg:pb-0">
           <ResultDashboard results={comboResults} flopSet={flopSet} heroCategory={heroCategory} />
         </div>
       </div>

@@ -20,8 +20,11 @@ function RangeMatrix({ selectedHands, onToggleHand }) {
   const matrix = useMemo(() => buildMatrix(), []);
 
   return (
-    <div className="inline-block">
-      <div className="grid gap-[1px]" style={{ gridTemplateColumns: 'repeat(13, 1fr)' }}>
+    <div className="w-full sm:w-auto overflow-x-auto">
+      <div
+        className="grid gap-[1px] min-w-[325px] sm:min-w-0"
+        style={{ gridTemplateColumns: 'repeat(13, 1fr)' }}
+      >
         {matrix.flat().map(({ label, type }) => {
           const isSelected = selectedHands.has(label);
           const colors = TYPE_COLORS[type];
@@ -31,9 +34,9 @@ function RangeMatrix({ selectedHands, onToggleHand }) {
               key={label}
               onClick={() => onToggleHand(label)}
               className={`
-                w-[42px] h-[38px] text-[11px] font-semibold rounded-sm border
+                aspect-square sm:w-[42px] sm:h-[38px] sm:aspect-auto text-[9px] sm:text-[11px] font-semibold rounded-sm border
                 transition-all duration-100 cursor-pointer
-                hover:brightness-125 hover:scale-105
+                hover:brightness-125 active:brightness-150
                 ${isSelected ? colors.selected : colors.unselected}
               `}
             >

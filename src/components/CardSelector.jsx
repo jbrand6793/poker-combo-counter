@@ -1,13 +1,27 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Shuffle, X, ChevronDown } from 'lucide-react';
 import { RANKS, SUITS, SUIT_SYMBOLS, SUIT_COLORS } from '../utils/poker';
 
 function CardPicker({ onSelect, deadCards, onClose }) {
   const dead = new Set(deadCards);
+  const ref = useRef(null);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
 
   return (
-    <div className="absolute z-50 top-full mt-1 left-0 bg-[#1a1a2e] border border-slate-700/50 rounded-lg p-2 shadow-xl shadow-black/50">
-      <div className="grid grid-cols-4 gap-0.5">
+    <div
+      ref={ref}
+      className="fixed z-50 bg-[#1a1a2e] border border-slate-700/50 rounded-lg p-2 shadow-xl shadow-black/50 max-h-[70vh] overflow-y-auto"
+      style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+    >
+      <div className="grid grid-cols-4 gap-1">
         {RANKS.map(r =>
           SUITS.map(s => {
             const card = r + s;
@@ -18,11 +32,11 @@ function CardPicker({ onSelect, deadCards, onClose }) {
                 disabled={isDead}
                 onClick={() => { onSelect(card); onClose(); }}
                 className={`
-                  w-8 h-8 text-[10px] font-bold rounded flex items-center justify-center
+                  w-10 h-10 sm:w-8 sm:h-8 text-sm sm:text-[10px] font-bold rounded flex items-center justify-center
                   transition-all cursor-pointer
                   ${isDead
                     ? 'bg-slate-800/50 text-slate-700 cursor-not-allowed'
-                    : 'bg-slate-800 hover:bg-slate-700 hover:scale-110'
+                    : 'bg-slate-800 hover:bg-slate-700 active:bg-slate-600 hover:scale-110'
                   }
                 `}
                 style={{ color: isDead ? undefined : SUIT_COLORS[s] }}
@@ -45,8 +59,8 @@ function CardSlot({ card, onClick, disabled }) {
       <button
         onClick={onClick}
         disabled={disabled}
-        className="w-12 h-16 bg-white rounded-lg flex flex-col items-center justify-center
-                   shadow cursor-pointer hover:scale-105 transition-transform border border-slate-300"
+        className="w-11 h-14 sm:w-12 sm:h-16 bg-white rounded-lg flex flex-col items-center justify-center
+                   shadow cursor-pointer hover:scale-105 active:scale-95 transition-transform border border-slate-300"
       >
         <span className="text-base font-black leading-none" style={{ color: SUIT_COLORS[suit] }}>
           {rank}
@@ -63,7 +77,7 @@ function CardSlot({ card, onClick, disabled }) {
       onClick={onClick}
       disabled={disabled}
       className={`
-        w-12 h-16 rounded-lg flex items-center justify-center border-2 border-dashed
+        w-11 h-14 sm:w-12 sm:h-16 rounded-lg flex items-center justify-center border-2 border-dashed
         transition-all cursor-pointer
         ${disabled
           ? 'border-slate-800 bg-slate-900/30 text-slate-700 cursor-not-allowed'
@@ -111,7 +125,7 @@ function CardSelector({ label, cards, onSetCard, deadCards, onRandomize, onClear
                        bg-violet-600/20 text-violet-400 hover:bg-violet-600/30 transition-colors cursor-pointer"
           >
             <Shuffle size={10} />
-            {isBoard ? 'Random' : 'Random'}
+            Random
           </button>
           <button
             onClick={onClear}
@@ -123,10 +137,10 @@ function CardSelector({ label, cards, onSetCard, deadCards, onRandomize, onClear
         </div>
       </div>
 
-      <div className="flex gap-2 relative">
+      <div className="flex gap-2">
         {isBoard && (
           <>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               {[0, 1, 2].map(i => (
                 <CardSlot key={i} card={cards[i]} onClick={() => handleSlotClick(i)} disabled={false} />
               ))}
@@ -140,15 +154,15 @@ function CardSelector({ label, cards, onSetCard, deadCards, onRandomize, onClear
         {!isBoard && cards.map((card, i) => (
           <CardSlot key={i} card={card} onClick={() => handleSlotClick(i)} disabled={false} />
         ))}
-
-        {pickerIndex !== null && (
-          <CardPicker
-            onSelect={handleSelect}
-            deadCards={deadCards}
-            onClose={() => setPickerIndex(null)}
-          />
-        )}
       </div>
+
+      {pickerIndex !== null && (
+        <CardPicker
+          onSelect={handleSelect}
+          deadCards={deadCards}
+          onClose={() => setPickerIndex(null)}
+        />
+      )}
     </div>
   );
 }

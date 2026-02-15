@@ -16,13 +16,15 @@ const CATEGORY_COLORS = {
   'Bottom Pair': 'text-lime-400 bg-lime-400/10',
   'Underpair': 'text-teal-400 bg-teal-400/10',
   'Board Pair': 'text-slate-400 bg-slate-400/10',
+  'Flush Draw': 'text-blue-300 bg-blue-300/10',
+  'Straight Draw': 'text-cyan-300 bg-cyan-300/10',
   'High Card': 'text-slate-500 bg-slate-500/10',
 };
 
 const CATEGORIES = [
   'Quads', 'Full House', 'Flush', 'Straight', 'Set', 'Trips',
   'Two Pair', 'Overpair', 'Top Pair', 'Middle Pair', 'Bottom Pair',
-  'Underpair', 'Board Pair', 'High Card',
+  'Underpair', 'Board Pair', 'Flush Draw', 'Straight Draw', 'High Card',
 ];
 
 function ResultDashboard({ results, flopSet, heroCategory }) {
@@ -36,7 +38,6 @@ function ResultDashboard({ results, flopSet, heroCategory }) {
 
   const heroRank = heroCategory ? CATEGORY_RANK[heroCategory] : null;
 
-  // Cumulative combos that beat hero (all categories strictly stronger)
   const beatsHeroTotal = useMemo(() => {
     if (heroRank === null) return null;
     let count = 0;

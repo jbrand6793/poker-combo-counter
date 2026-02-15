@@ -8,7 +8,6 @@ export const RANK_VALUE = {
   '9': 9, '8': 8, '7': 7, '6': 6, '5': 5, '4': 4, '3': 3, '2': 2,
 };
 
-// Build full 52-card deck
 export function buildDeck() {
   const deck = [];
   for (const r of RANKS) {
@@ -19,7 +18,6 @@ export function buildDeck() {
   return deck;
 }
 
-// Build the 13x13 matrix labels
 export function buildMatrix() {
   const matrix = [];
   for (let i = 0; i < 13; i++) {
@@ -38,8 +36,6 @@ export function buildMatrix() {
   return matrix;
 }
 
-// Default hand ranking for opening ranges (roughly standard)
-// Lower number = stronger hand = selected first by slider
 const HAND_RANKINGS = [
   'AA', 'KK', 'QQ', 'AKs', 'JJ', 'AQs', 'KQs', 'AJs', 'AKo', 'TT',
   'ATs', 'KJs', 'QJs', 'JTs', '99', 'AQo', 'A9s', 'KTs', 'QTs', 'T9s',
@@ -61,13 +57,12 @@ const HAND_RANKINGS = [
   '43o', '42o', '32o',
 ];
 
-// Total combos: 13 pairs * 6 + 78 suited * 4 + 78 offsuit * 12 = 1,326
 export const TOTAL_COMBOS = 1326;
 
 export function comboCountForHand(handLabel) {
   if (handLabel.endsWith('s')) return 4;
   if (handLabel.endsWith('o')) return 12;
-  return 6; // pair
+  return 6;
 }
 
 export function getHandsForPercentage(percentage) {
@@ -94,7 +89,6 @@ export function getTotalHandCount() {
   return HAND_RANKINGS.length;
 }
 
-// Get all specific card combos for a hand label (e.g., "AKs" -> ["AsKs", "AhKh", ...])
 export function getSpecificCombos(handLabel) {
   const type = handLabel.endsWith('s') ? 'suited' : handLabel.endsWith('o') ? 'offsuit' : 'pair';
   const r1 = handLabel[0];
@@ -123,15 +117,66 @@ export function getSpecificCombos(handLabel) {
   return combos;
 }
 
-// Remove combos that conflict with dead cards (hero hand + board)
 export function getAvailableCombos(handLabel, deadCards) {
   const allCombos = getSpecificCombos(handLabel);
   const dead = new Set(deadCards.filter(Boolean));
   return allCombos.filter(([c1, c2]) => !dead.has(c1) && !dead.has(c2));
 }
 
-// Evaluate what a 2-card hand makes on a given board
-// Returns the best hand category
+// Check for flush draw: 4 cards of same suit among hole+board
+function checkFlushDraw(holeCards, boardCards) {
+  const allCards = [...holeCards, ...boardCards];
+  const suitCounts = {};
+  for (const c of allCards) {
+    const s = c[1];
+    suitCounts[s] = (suitCounts[s] || 0) + 1;
+  }
+  // Need exactly 4 to same suit (5 = made flush, handled before this)
+  // And at least one hole card contributes
+  for (const [suit, count] of Object.entries(suitCounts)) {
+    if (count === 4 && holeCards.some(c => c[1] === suit)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Check for straight draw (OESD or gutshot) among hole+board
+function checkStraightDraw(holeCards, boardCards) {
+  const allCards = [...holeCards, ...boardCards];
+  const allRanks = allCards.map(c => RANK_VALUE[c[0]]);
+  const holeRanks = new Set(holeCards.map(c => RANK_VALUE[c[0]]));
+  const unique = [...new Set(allRanks)];
+  // Add ace-low
+  if (unique.includes(14)) unique.push(1);
+  unique.sort((a, b) => a - b);
+
+  // Check all windows of 5 consecutive values
+  for (let i = 0; i <= unique.length - 4; i++) {
+    const window = [];
+    let end = i;
+    while (end < unique.length && unique[end] - unique[i] < 5) {
+      window.push(unique[end]);
+      end++;
+    }
+    // 4 out of 5 consecutive = straight draw
+    if (window.length === 4) {
+      const lo = unique[i];
+      const hi = lo + 4;
+      const missing = [];
+      for (let v = lo; v <= hi; v++) {
+        if (!window.includes(v)) missing.push(v);
+      }
+      if (missing.length === 1) {
+        // Make sure at least one hole card is part of the draw
+        const holeContributes = window.some(r => holeRanks.has(r) || (r === 1 && holeRanks.has(14)));
+        if (holeContributes) return true;
+      }
+    }
+  }
+  return false;
+}
+
 export function evaluateHandOnBoard(holeCards, boardCards) {
   const allCards = [...holeCards, ...boardCards];
   if (allCards.length < 5) return null;
@@ -139,7 +184,6 @@ export function evaluateHandOnBoard(holeCards, boardCards) {
   const ranks = allCards.map(c => RANK_VALUE[c[0]]);
   const suits = allCards.map(c => c[1]);
 
-  // Count ranks and suits
   const rankCounts = {};
   const suitCounts = {};
   for (let i = 0; i < allCards.length; i++) {
@@ -151,14 +195,12 @@ export function evaluateHandOnBoard(holeCards, boardCards) {
 
   const holeRanks = holeCards.map(c => RANK_VALUE[c[0]]);
   const boardRanks = boardCards.map(c => RANK_VALUE[c[0]]);
-  const boardSuits = boardCards.map(c => c[1]);
 
   const hasFlush = Object.values(suitCounts).some(c => c >= 5);
   const hasStraight = checkStraight(ranks);
 
   // Quads
-  const quadRank = Object.entries(rankCounts).find(([, c]) => c === 4);
-  if (quadRank) return 'Quads';
+  if (Object.entries(rankCounts).find(([, c]) => c === 4)) return 'Quads';
 
   // Full House
   const trips = Object.entries(rankCounts).filter(([, c]) => c >= 3).map(([r]) => +r);
@@ -166,39 +208,25 @@ export function evaluateHandOnBoard(holeCards, boardCards) {
   if (trips.length > 0 && pairs.length >= 2) return 'Full House';
 
   // Flush
-  if (hasFlush) {
-    // Check if hero contributes to the flush
-    const flushSuit = Object.entries(suitCounts).find(([, c]) => c >= 5)?.[0];
-    const heroHasFlushCard = holeCards.some(c => c[1] === flushSuit);
-    if (heroHasFlushCard) return 'Flush';
-    // Board flush - opponent might still have it if they have a card of that suit
-    return 'Flush';
-  }
+  if (hasFlush) return 'Flush';
 
   // Straight
   if (hasStraight) return 'Straight';
 
-  // Set (three of a kind where pair is in hole cards)
+  // Set
   if (trips.length > 0) {
     const tripRank = trips[0];
     const holeHasPair = holeRanks[0] === holeRanks[1] && holeRanks[0] === tripRank;
     if (holeHasPair) return 'Set';
-    // Check if hole card + 2 board cards make trips
     const holeTripContrib = holeRanks.filter(r => r === tripRank).length;
     const boardTripContrib = boardRanks.filter(r => r === tripRank).length;
     if (holeTripContrib >= 1 && boardTripContrib >= 2) return 'Trips';
-    if (holeHasPair) return 'Set';
     return 'Trips';
   }
 
   // Two Pair
   const pairRanks = Object.entries(rankCounts).filter(([, c]) => c === 2).map(([r]) => +r);
-  if (pairRanks.length >= 2) {
-    // Check if hero contributes to at least one pair
-    const heroContributes = pairRanks.some(pr => holeRanks.includes(pr));
-    if (heroContributes) return 'Two Pair';
-    return 'Two Pair';
-  }
+  if (pairRanks.length >= 2) return 'Two Pair';
 
   // One Pair
   if (pairRanks.length === 1) {
@@ -206,7 +234,6 @@ export function evaluateHandOnBoard(holeCards, boardCards) {
     const heroPairContrib = holeRanks.filter(r => r === pairRank).length;
 
     if (heroPairContrib === 2) {
-      // Pocket pair
       const sortedBoard = [...boardRanks].sort((a, b) => b - a);
       if (pairRank > sortedBoard[0]) return 'Overpair';
       return 'Underpair';
@@ -222,12 +249,17 @@ export function evaluateHandOnBoard(holeCards, boardCards) {
     return 'Board Pair';
   }
 
+  // Draws (only for unpaired hands)
+  const hasFlushDraw = checkFlushDraw(holeCards, boardCards);
+  const hasStraightDraw = checkStraightDraw(holeCards, boardCards);
+  if (hasFlushDraw) return 'Flush Draw';
+  if (hasStraightDraw) return 'Straight Draw';
+
   return 'High Card';
 }
 
 function checkStraight(ranks) {
   const unique = [...new Set(ranks)].sort((a, b) => a - b);
-  // Check for A-low straight
   if (unique.includes(14)) {
     unique.unshift(1);
   }
@@ -243,7 +275,6 @@ function checkStraight(ranks) {
   return false;
 }
 
-// Classify villain's hand combos on a board
 export function classifyVillainCombos(selectedRange, heroCards, boardCards) {
   const deadCards = [...heroCards, ...boardCards].filter(Boolean);
   const categories = {
@@ -260,6 +291,8 @@ export function classifyVillainCombos(selectedRange, heroCards, boardCards) {
     'Bottom Pair': [],
     'Underpair': [],
     'Board Pair': [],
+    'Flush Draw': [],
+    'Straight Draw': [],
     'High Card': [],
   };
 
@@ -279,24 +312,26 @@ export function classifyVillainCombos(selectedRange, heroCards, boardCards) {
 }
 
 // Category strength ranking (higher = stronger)
+// Draws are below made hands but above pure high card
 export const CATEGORY_RANK = {
-  'Quads': 13,
-  'Full House': 12,
-  'Flush': 11,
-  'Straight': 10,
-  'Set': 9,
-  'Trips': 8,
-  'Two Pair': 7,
-  'Overpair': 6,
-  'Top Pair': 5,
-  'Middle Pair': 4,
-  'Bottom Pair': 3,
-  'Underpair': 2,
-  'Board Pair': 1,
+  'Quads': 15,
+  'Full House': 14,
+  'Flush': 13,
+  'Straight': 12,
+  'Set': 11,
+  'Trips': 10,
+  'Two Pair': 9,
+  'Overpair': 8,
+  'Top Pair': 7,
+  'Middle Pair': 6,
+  'Bottom Pair': 5,
+  'Underpair': 4,
+  'Board Pair': 3,
+  'Flush Draw': 2,
+  'Straight Draw': 1,
   'High Card': 0,
 };
 
-// Random card that's not in deadCards
 export function randomCard(deadCards) {
   const deck = buildDeck();
   const dead = new Set(deadCards.filter(Boolean));
