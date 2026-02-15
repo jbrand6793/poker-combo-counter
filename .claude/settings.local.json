@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(source:*)",
+      "Bash(xcode-select:*)",
+      "Bash(export:*)",
+      "Bash(curl:*)",
+      "Bash(node --version:*)",
+      "Bash(npm:*)"
+    ]
+  }
+}
